@@ -11,7 +11,14 @@
     extra-substituters = "https://devenv.cachix.org";
   };
 
-  outputs = { self, nixpkgs, devenv, systems, ... } @ inputs:
+  outputs =
+    {
+      self,
+      nixpkgs,
+      devenv,
+      systems,
+      ...
+    }@inputs:
     let
       forEachSystem = nixpkgs.lib.genAttrs (import systems);
     in
@@ -20,33 +27,38 @@
         devenv-up = self.devShells.${system}.default.config.procfileScript;
       });
 
-      devShells = forEachSystem
-        (system:
-          let
-            pkgs = nixpkgs.legacyPackages.${system};
-          in
-          {
-            default = devenv.lib.mkShell {
-              inherit inputs pkgs;
-              modules = [
-                {
-                  # https://devenv.sh/reference/options/
-                  packages = [ pkgs.hello ];
-                  languages = {
-                    c.enable = true;
-                    cplusplus.enable = true;
-                  };
+      devShells = forEachSystem (
+        system:
+        let
+          pkgs = nixpkgs.legacyPackages.${system};
+        in
+        {
+          default = devenv.lib.mkShell {
+            inherit inputs pkgs;
+            modules = [
+              {
+                packages = with pkgs; [
+                  glfw
+                  assimp
+                  glew
+                  glm
+                  pkg-config
+                  mesa
+                ];
+                languages = {
+                  c.enable = true;
+                  cplusplus.enable = true;
+                };
 
+                enterShell = ''
+                  echo "Hej! Keep on keeping on! :3"
+                '';
 
-                  enterShell = ''
-                    hello
-                  '';
-
-                  processes.hello.exec = "hello";
-                }
-              ];
-            };
-          });
+              }
+            ];
+          };
+        }
+      );
       pre-commit.hooks = {
         shellcheck.enable = true;
         typos.enable = true;
